@@ -1,0 +1,57 @@
+version: "3.9"
+
+#volumes:
+#  redis0_data_dev: {}
+#  redis1_data_dev: {}
+#  mssql_data_dev: {}
+
+services:
+  redis_0:
+    image: redis:alpine
+    container_name: sullivan_backend_test_redis_0_dev
+    command: >
+      sh -c "redis-server --requirepass ${REDIS_PASSWORD}"
+    restart: always
+    ports:
+      - "6385:6379"
+    volumes:
+      - ./docker-vols/redis_0_data:/var/lib/redis
+#      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    environment:
+      - REDIS_REPLICATION_MODE=master
+    networks:
+      - sullivan_backend_test_net
+
+  redis_1:
+    image: redis:alpine
+    container_name: sullivan_backend_test_redis_1_dev
+    command: >
+      sh -c "redis-server
+      && redis-cli config set masterauth ${REDIS_PASSWORD}
+      && redis-cli REPLICAOF redis_0 6379"
+    restart: always
+    ports:
+      - "6386:6379"
+    volumes:
+      - ./docker-vols/redis_1_data:/var/lib/redis
+    depends_on:
+      - redis_0
+    networks:
+      - sullivan_backend_test_net
+
+  postgres:
+    image: postgres:14.1-alpine
+    container_name: sullivan_backend_test_postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=sullivan_backend_test
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - ./docker-vols/pg_data:/var/lib/postgresql/data
+      - ./docker-vols/pg_init:/docker-entrypoint-initdb.d
+    ports:
+      - "43210:5432"
+
+networks:
+  sullivan_backend_test_net:
+    driver: bridge

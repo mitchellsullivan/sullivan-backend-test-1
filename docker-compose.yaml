@@ -1,0 +1,76 @@
+version: "3.9"
+
+volumes:
+  sullivan_backend_redis0_data: {}
+  sullivan_backend_redis1_data: {}
+  sullivan_backend_pg_data: {}
+
+networks:
+  sullivan_backend_test_net:
+    driver: bridge
+
+services:
+  app:
+    build: .
+    container_name: sullivan_backend_test_app
+    restart: always
+    depends_on:
+      - pg_db
+      - redis_0
+      - redis_1
+    ports:
+      - "${HOST_PORT}:8099"
+    environment:
+      DB_CONN_STR: host=pg_db user=sullivan_backend_test password=${POSTGRES_PASSWORD} port=5432 sslmode=disable
+      REDIS_URL: redis_0:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+    networks:
+      - sullivan_backend_test_net
+
+  redis_0:
+    image: redis:alpine
+    container_name: sullivan_backend_test_redis_0
+    command: >
+      sh -c "redis-server --requirepass ${REDIS_PASSWORD}"
+    restart: always
+    ports:
+      - "6379"
+    volumes:
+      - sullivan_backend_redis0_data:/var/lib/redis
+    environment:
+      REDIS_REPLICATION_MODE: master
+    networks:
+      - sullivan_backend_test_net
+
+  redis_1:
+    image: redis:alpine
+    container_name: sullivan_backend_test_redis_1
+    command: >
+      sh -c "redis-server
+      && redis-cli config set masterauth ${REDIS_PASSWORD}
+      && redis-cli REPLICAOF redis_0 6379"
+    restart: always
+    ports:
+      - "6379"
+    volumes:
+      - sullivan_backend_redis1_data:/var/lib/redis
+    depends_on:
+      - redis_0
+    networks:
+      - sullivan_backend_test_net
+
+  pg_db:
+    image: postgres:14.1-alpine
+    container_name: sullivan_backend_test_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: sullivan_backend_test
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - sullivan_backend_pg_data:/var/lib/postgresql/data
+      - ./docker-vols/pg_init:/docker-entrypoint-initdb.d
+    ports:
+      - "5432"
+    networks:
+      - sullivan_backend_test_net
