@@ -52,7 +52,12 @@ For the primary key of Users, I've used a ULID (generated in-app), instead of a 
 for improved indexing and because it seemed more appropriate for use as a JWT claim than a serial integer. 
 
 
-### Thank you!!
+## Thank you!
+I'm on a rather arduous leg of my career-journey, so I would greatly appreciate any feedback or tips.
+Since my experience has been rather broad, I'd be willing to "start over" as a junior engineer in order to focus my skillset.
+
+All the best,<br/>
+MS
 
 
 
